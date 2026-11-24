@@ -1,0 +1,25 @@
+node_modules/
+.next/
+out/
+data/*.db
+data/*.db-*
+storage/uploads/
+.env
+.env.local
+*.log
+.DS_Store
+test-results/
+playwright-report/
+coverage/
+tsconfig.tsbuildinfo
+
+# ── Local data & secrets (never publish) ────────────────────
+backups/
+data/.encryption-key
+storage/
+.freebuff/
+.kilo/
+.kilocode/
+cookies.txt
+.tmp-*
+*.local

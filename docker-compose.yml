@@ -1,0 +1,72 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: socialhub-pro:latest
+    container_name: socialhub-pro
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      DATABASE_PATH: /app/data/socialhub.db
+      STORAGE_DIR: /app/storage/uploads
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      WORKER_SECRET: ${WORKER_SECRET:-}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      ENABLE_INPROCESS_SCHEDULER: ${ENABLE_INPROCESS_SCHEDULER:-false}
+      SCHEDULER_INTERVAL_SECONDS: ${SCHEDULER_INTERVAL_SECONDS:-20}
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_REDIRECT_URI: ${META_REDIRECT_URI:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+      META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-SocialHub Pro <no-reply@socialhubpro.app>}
+    volumes:
+      - socialhub_data:/app/data
+      - socialhub_uploads:/app/storage/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # Dedicated publishing worker. Runs the same image with the worker entrypoint,
+  # so jobs keep flowing even when the web container is idle or restarting.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: socialhub-pro:latest
+    container_name: socialhub-worker
+    restart: unless-stopped
+    command: ["node", "scripts/worker.mjs"]
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:-http://app:3000}
+      DATABASE_PATH: /app/data/socialhub.db
+      STORAGE_DIR: /app/storage/uploads
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      WORKER_SECRET: ${WORKER_SECRET:-}
+      SEED_DEMO: "false"
+      ENABLE_INPROCESS_SCHEDULER: "false"
+      SCHEDULER_INTERVAL_SECONDS: ${SCHEDULER_INTERVAL_SECONDS:-20}
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+    volumes:
+      - socialhub_data:/app/data
+      - socialhub_uploads:/app/storage/uploads
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  socialhub_data:
+  socialhub_uploads:
